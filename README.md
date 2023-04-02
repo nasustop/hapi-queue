@@ -1,4 +1,4 @@
-# HapiMemcached
+# HapiQueue
 hyperf的队列组件，兼容`hyperf/async-queue`和`hyperf/amqp`
 
 ## 安装
