@@ -9,16 +9,12 @@ declare(strict_types=1);
  * @contact  xupengfei@xupengfei.net
  * @license  https://github.com/nasustop/hapi-queue/blob/master/LICENSE
  */
-namespace HyperfTest\Cases;
-
-/**
- * @internal
- * @coversNothing
- */
-class ExampleTest extends AbstractTestCase
-{
-    public function testExample()
+if (! function_exists('pushQueue')) {
+    /**
+     * 触发队列任务.
+     */
+    function pushQueue(Nasustop\HapiQueue\Job\JobInterface $job)
     {
-        $this->assertTrue(true);
+        (new \Nasustop\HapiQueue\Producer($job))->onQueue($job->getQueue())->dispatcher();
     }
 }

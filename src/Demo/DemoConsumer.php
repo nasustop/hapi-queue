@@ -9,16 +9,11 @@ declare(strict_types=1);
  * @contact  xupengfei@xupengfei.net
  * @license  https://github.com/nasustop/hapi-queue/blob/master/LICENSE
  */
-namespace HyperfTest\Cases;
+namespace Nasustop\HapiQueue\Demo;
 
-/**
- * @internal
- * @coversNothing
- */
-class ExampleTest extends AbstractTestCase
+use Nasustop\HapiQueue\Consumer;
+
+class DemoConsumer extends Consumer
 {
-    public function testExample()
-    {
-        $this->assertTrue(true);
-    }
+    protected string $queue = 'default';
 }

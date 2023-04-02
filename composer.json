@@ -10,7 +10,10 @@
     "autoload": {
         "psr-4": {
             "Nasustop\\HapiQueue\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -18,7 +21,12 @@
         }
     },
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.0",
+        "hyperf/amqp": "^3.0",
+        "hyperf/async-queue": "^3.0",
+        "hyperf/event": "^3.0",
+        "hyperf/exception-handler": "^3.0",
+        "hyperf/logger": "^3.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
