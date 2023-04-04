@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 if (! function_exists('pushQueue')) {
     /**
-     * 触发队列任务.
+     * 生产者,触发队列任务.
      */
     function pushQueue(Nasustop\HapiQueue\Job\JobInterface $job)
     {
