@@ -11,9 +11,6 @@ declare(strict_types=1);
  */
 namespace Nasustop\HapiQueue\Job;
 
-use Hyperf\Utils\ApplicationContext;
-use Psr\Container\ContainerInterface;
-
 abstract class Job implements JobInterface
 {
     /**
@@ -68,10 +65,5 @@ abstract class Job implements JobInterface
         if ($result !== self::ACK) {
             throw new \RuntimeException(sprintf('%s处理失败', self::class));
         }
-    }
-
-    public function getContainer(): ContainerInterface
-    {
-        return ApplicationContext::getContainer();
     }
 }

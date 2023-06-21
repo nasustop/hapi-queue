@@ -13,14 +13,14 @@ namespace Nasustop\HapiQueue\Command;
 
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Utils\ApplicationContext;
 use Nasustop\HapiQueue\Consumer;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Input\InputArgument;
 
 class ConsumerCommand extends HyperfCommand
 {
-    public function __construct(protected ContainerInterface $container)
+    protected ConfigInterface $config;
+
+    public function __construct()
     {
         parent::__construct('hapi:queue:work');
     }
@@ -37,17 +37,19 @@ class ConsumerCommand extends HyperfCommand
     public function handle()
     {
         $queue = $this->input->getArgument('queue');
-        $config = $this->getConfig(sprintf('queue.queue.%s', $queue));
+        $config = $this->getConfig()->get(sprintf('queue.queue.%s', $queue));
         if (! $config) {
             $this->error(sprintf('[%s]队列配置不存在', $queue));
             return;
         }
-        (new Consumer(ApplicationContext::getContainer()))->setQueue($queue)->handle();
+        (new Consumer())->setQueue($queue)->handle();
     }
 
-    protected function getConfig(string $key, $default = null)
+    protected function getConfig(): ConfigInterface
     {
-        $config = $this->container->get(ConfigInterface::class);
-        return $config->get($key, $default);
+        if (empty($this->config)) {
+            $this->config = make(ConfigInterface::class);
+        }
+        return $this->config;
     }
 }

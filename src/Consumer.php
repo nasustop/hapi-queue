@@ -14,7 +14,6 @@ namespace Nasustop\HapiQueue;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Process\AbstractProcess;
-use Hyperf\Utils\ApplicationContext;
 use Nasustop\HapiQueue\Amqp\ConnectionFactory;
 use Nasustop\HapiQueue\Amqp\Consumer as BaseConsumer;
 use Nasustop\HapiQueue\Message\AmqpMessage;
@@ -31,14 +30,19 @@ class Consumer extends AbstractProcess
 
     protected StdoutLoggerInterface $logger;
 
-    public function __construct(protected ContainerInterface $container)
+    protected ContainerInterface $container;
+
+    protected ConfigInterface $config;
+
+    protected ConnectionFactory $connectionFactory;
+
+    public function __construct()
     {
         if (empty($this->queue)) {
             $this->queue = self::class;
         }
         $this->initQueue();
-        $this->logger = ApplicationContext::getContainer()->get(StdoutLoggerInterface::class);
-        parent::__construct($container);
+        parent::__construct($this->getContainer());
     }
 
     public function setQueue(string $queue): self
@@ -50,7 +54,7 @@ class Consumer extends AbstractProcess
 
     public function isEnable($server): bool
     {
-        return (bool) $this->getConfig('queue.open_process', false);
+        return (bool) $this->getConfig()->get('queue.open_process', false);
     }
 
     /**
@@ -98,7 +102,7 @@ class Consumer extends AbstractProcess
      */
     public function handle(): void
     {
-        $queueDriver = $this->getConfig('queue.driver', 'redis');
+        $queueDriver = $this->getConfig()->get('queue.driver', 'redis');
         switch ($queueDriver) {
             case 'redis':
                 $this->driverRedis();
@@ -109,22 +113,48 @@ class Consumer extends AbstractProcess
         }
     }
 
-    protected function getConfig(string $key, $default = null)
+    protected function getConnectionFactory(): ConnectionFactory
     {
-        $config = $this->container->get(ConfigInterface::class);
-        return $config->get($key, $default);
+        if (empty($this->connectionFactory)) {
+            $this->connectionFactory = make(ConnectionFactory::class);
+        }
+        return $this->connectionFactory;
+    }
+
+    protected function getLogger(): StdoutLoggerInterface
+    {
+        if (empty($this->logger)) {
+            $this->logger = make(StdoutLoggerInterface::class);
+        }
+        return $this->logger;
+    }
+
+    protected function getContainer(): ContainerInterface
+    {
+        if (empty($this->container)) {
+            $this->container = make(ContainerInterface::class);
+        }
+        return $this->container;
+    }
+
+    protected function getConfig(): ConfigInterface
+    {
+        if (empty($this->config)) {
+            $this->config = make(ConfigInterface::class);
+        }
+        return $this->config;
     }
 
     protected function initQueue()
     {
         $this->name = "queue.{$this->queue}";
-        $this->nums = (int) $this->getConfig(sprintf('queue.queue.%s.process', $this->queue), $this->nums);
+        $this->nums = (int) $this->getConfig()->get(sprintf('queue.queue.%s.process', $this->queue), $this->nums);
     }
 
     protected function driverRedis()
     {
         $info = sprintf('Redis Queue Consumer [%s] start listen...', $this->name);
-        $this->logger->info($info);
+        $this->getLogger()->info($info);
         $this->getRedisMessage()->onQueue($this->queue)->consume();
     }
 
@@ -134,14 +164,13 @@ class Consumer extends AbstractProcess
     protected function driverAmqp()
     {
         $consumer = new BaseConsumer(
-            $this->container,
-            $this->container->get(ConnectionFactory::class),
-            $this->container->get(StdoutLoggerInterface::class)
+            $this->getContainer(),
+            $this->getConnectionFactory(),
+            $this->getLogger(),
         );
         $message = $this->getAmqpMessage()->onQueue($this->queue);
         $info = sprintf('Amqp Queue Consumer [%s] start listen...', $this->name);
-        $this->logger->info($info);
-        $factory = $this->container->get(ConnectionFactory::class);
-        $consumer->setFactory($factory)->consume($message);
+        $this->getLogger()->info($info);
+        $consumer->setFactory($this->getConnectionFactory())->consume($message);
     }
 }

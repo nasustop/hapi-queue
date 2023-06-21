@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Nasustop\HapiQueue\Amqp;
 
 use Hyperf\Amqp\Message\ConsumerMessageInterface;
-use Nasustop\HapiBase\Queue\Job\JobInterface;
+use Nasustop\HapiQueue\Job\JobInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class Consumer extends \Hyperf\Amqp\Consumer

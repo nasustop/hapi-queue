@@ -20,6 +20,4 @@ interface JobInterface extends \Hyperf\AsyncQueue\JobInterface
     public function getQueue(): string;
 
     public function handle(): string;
-
-    public function getContainer(): ContainerInterface;
 }

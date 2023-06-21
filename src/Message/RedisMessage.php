@@ -13,12 +13,13 @@ namespace Nasustop\HapiQueue\Message;
 
 use Hyperf\AsyncQueue\Driver\RedisDriver;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Utils\ApplicationContext;
 use Nasustop\HapiQueue\Job\JobInterface;
 
 class RedisMessage
 {
     protected RedisDriver $driver;
+
+    protected ConfigInterface $configInterface;
 
     protected array $config = [];
 
@@ -26,7 +27,7 @@ class RedisMessage
 
     public function __construct(protected ?JobInterface $payload = null)
     {
-        $this->config = $this->getBaseConfig('queue.redis', []);
+        $this->config = $this->getConfigInterface()->get('queue.redis', []);
     }
 
     /**
@@ -67,8 +68,8 @@ class RedisMessage
     public function getDriver(): RedisDriver
     {
         if (empty($this->driver)) {
-            $this->config = array_replace($this->config, $this->getBaseConfig(sprintf('queue.queue.%s', $this->queue), []));
-            $this->config['channel'] = $this->config['channel'] ?? sprintf('{%s.queue.%s}', $this->getBaseConfig('app_name'), $this->queue);
+            $this->config = array_replace($this->config, $this->getConfigInterface()->get(sprintf('queue.queue.%s', $this->queue), []));
+            $this->config['channel'] = $this->config['channel'] ?? sprintf('{%s.queue.%s}', $this->getConfigInterface()->get('app_name'), $this->queue);
             $this->setDriver(make(RedisDriver::class, ['config' => $this->config]));
         }
         return $this->driver;
@@ -104,9 +105,11 @@ class RedisMessage
         $this->getDriver()->consume();
     }
 
-    protected function getBaseConfig(string $key, $default = null)
+    protected function getConfigInterface(): ConfigInterface
     {
-        $config = ApplicationContext::getContainer()->get(ConfigInterface::class);
-        return $config->get($key, $default);
+        if (empty($this->configInterface)) {
+            $this->configInterface = make(ConfigInterface::class);
+        }
+        return $this->configInterface;
     }
 }

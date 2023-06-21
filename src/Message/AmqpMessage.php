@@ -18,7 +18,6 @@ use Hyperf\Amqp\Message\ConsumerMessage;
 use Hyperf\Amqp\Message\ProducerMessageInterface;
 use Hyperf\Amqp\Packer\Packer;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Utils\ApplicationContext;
 use Nasustop\HapiQueue\Amqp\ConnectionFactory;
 use Nasustop\HapiQueue\Amqp\Consumer;
 use Nasustop\HapiQueue\Amqp\Producer;
@@ -35,6 +34,16 @@ class AmqpMessage extends ConsumerMessage implements ProducerMessageInterface
     protected int $millisecond = 0;
 
     protected static bool $declare_status = false;
+
+    protected Packer $packer;
+
+    protected Consumer $consumer;
+
+    protected Producer $producer;
+
+    protected ConnectionFactory $connectionFactory;
+
+    protected ConfigInterface $config;
 
     public function __construct(protected ?JobInterface $payload = null)
     {
@@ -69,8 +78,7 @@ class AmqpMessage extends ConsumerMessage implements ProducerMessageInterface
 
     public function serialize(): string
     {
-        $packer = ApplicationContext::getContainer()->get(Packer::class);
-        return $packer->pack(serialize($this->payload));
+        return $this->getPacker()->pack(serialize($this->payload));
     }
 
     public function unserialize(string $data)
@@ -129,11 +137,11 @@ class AmqpMessage extends ConsumerMessage implements ProducerMessageInterface
     public function onQueue(string $queue): AmqpMessage
     {
         $this->setQueue($queue);
-        $config = $this->getConfig(sprintf('queue.queue.%s', $queue));
+        $config = $this->getConfig()->get(sprintf('queue.queue.%s', $queue));
         if (empty($config)) {
             throw new \InvalidArgumentException(sprintf('queue config [%s] is not exist!', $queue));
         }
-        $app_name = (string) $this->getConfig('app_name');
+        $app_name = (string) $this->getConfig()->get('app_name');
         $exchange = sprintf('%s.exchange.%s', $app_name, $queue);
         $routingKey = sprintf('%s.routing_key.%s', $app_name, $queue);
         $queue = sprintf('%s.queue.%s', $app_name, $queue);
@@ -151,31 +159,63 @@ class AmqpMessage extends ConsumerMessage implements ProducerMessageInterface
         if (self::$declare_status) {
             return $this;
         }
-        $consumer = ApplicationContext::getContainer()->get(Consumer::class);
-        $factory = ApplicationContext::getContainer()->get(ConnectionFactory::class);
-        $connection = $factory->getConnection($this->getPoolName());
+        $connection = $this->getConnectionFactory()->getConnection($this->getPoolName());
 
         $channel = $connection->getConfirmChannel();
-        $consumer->setFactory($factory)->declare($this, $channel);
+        $this->getConsumer()->setFactory($this->getConnectionFactory())->declare($this, $channel);
         self::$declare_status = true;
         return $this;
     }
 
     public function dispatcher(): bool
     {
-        $producer = ApplicationContext::getContainer()->get(Producer::class);
-        $factory = ApplicationContext::getContainer()->get(ConnectionFactory::class);
-        return $producer->setFactory($factory)->produce($this->declare());
-    }
-
-    protected function getConfig(string $key, $default = null)
-    {
-        $config = ApplicationContext::getContainer()->get(ConfigInterface::class);
-        return $config->get($key, $default);
+        return $this->getProducer()
+            ->setFactory($this->getConnectionFactory())
+            ->produce($this->declare());
     }
 
     protected function getDeadLetterExchange(): string
     {
         return 'delayed';
+    }
+
+    protected function getPacker(): Packer
+    {
+        if (empty($this->packer)) {
+            $this->packer = make(Packer::class);
+        }
+        return $this->packer;
+    }
+
+    protected function getConsumer(): Consumer
+    {
+        if (empty($this->consumer)) {
+            $this->consumer = make(Consumer::class);
+        }
+        return $this->consumer;
+    }
+
+    protected function getProducer(): Producer
+    {
+        if (empty($this->producer)) {
+            $this->producer = make(Producer::class);
+        }
+        return $this->producer;
+    }
+
+    protected function getConnectionFactory(): ConnectionFactory
+    {
+        if (empty($this->connectionFactory)) {
+            $this->connectionFactory = make(ConnectionFactory::class);
+        }
+        return $this->connectionFactory;
+    }
+
+    protected function getConfig(): ConfigInterface
+    {
+        if (empty($this->config)) {
+            $this->config = make(ConfigInterface::class);
+        }
+        return $this->config;
     }
 }

@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace Nasustop\HapiQueue;
 
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Utils\ApplicationContext;
 use Nasustop\HapiQueue\Job\JobInterface;
 use Nasustop\HapiQueue\Message\AmqpMessage;
 use Nasustop\HapiQueue\Message\RedisMessage;
@@ -22,6 +21,8 @@ class Producer
     protected RedisMessage $redisMessage;
 
     protected AmqpMessage $amqpMessage;
+
+    protected ConfigInterface $config;
 
     protected string $queue;
 
@@ -52,7 +53,7 @@ class Producer
 
     public function dispatcher()
     {
-        switch ($this->getConfig('queue.driver', 'redis')) {
+        switch ($this->getConfig()->get('queue.driver', 'redis')) {
             case 'redis':
                 $this->dispatcherRedis();
                 break;
@@ -85,9 +86,11 @@ class Producer
             ->dispatcher();
     }
 
-    protected function getConfig(string $key, $default = null)
+    protected function getConfig(): ConfigInterface
     {
-        $config = ApplicationContext::getContainer()->get(ConfigInterface::class);
-        return $config->get($key, $default);
+        if (empty($this->config)) {
+            $this->config = make(ConfigInterface::class);
+        }
+        return $this->config;
     }
 }
