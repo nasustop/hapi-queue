@@ -11,8 +11,6 @@ declare(strict_types=1);
  */
 namespace Nasustop\HapiQueue\Job;
 
-use Psr\Container\ContainerInterface;
-
 interface JobInterface extends \Hyperf\AsyncQueue\JobInterface
 {
     public function setQueue(string $queue): self;
