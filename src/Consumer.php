@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace Nasustop\HapiQueue;
 
+use Hyperf\Context\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Process\AbstractProcess;
@@ -132,7 +133,7 @@ class Consumer extends AbstractProcess
     protected function getContainer(): ContainerInterface
     {
         if (empty($this->container)) {
-            $this->container = make(ContainerInterface::class);
+            $this->container = ApplicationContext::getContainer();
         }
         return $this->container;
     }
